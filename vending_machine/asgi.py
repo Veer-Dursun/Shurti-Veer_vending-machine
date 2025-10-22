@@ -14,3 +14,5 @@ from django.core.asgi import get_asgi_application
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'vending_machine.settings')
 
 application = get_asgi_application()
+# Add this to settings.py
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost']

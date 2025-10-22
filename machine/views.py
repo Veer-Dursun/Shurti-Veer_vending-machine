@@ -3,6 +3,7 @@ from decimal import Decimal, InvalidOperation
 from django.utils import timezone
 from .models import Student, Product, AmountInserted, Order, ChangeReturn
 import logging
+import traceback
 
 logger = logging.getLogger(__name__)
 
@@ -14,9 +15,12 @@ def home(request):
 # -------- Student Login --------
 def student_login(request):
     try:
+        logger.info(f"Student login view called - Method: {request.method}")
+        
         if request.method == 'POST':
             name = request.POST.get('name', '').strip()
             campus = request.POST.get('campus', '').strip()
+            logger.info(f"POST data - Name: '{name}', Campus: '{campus}'")
 
             if not name or not campus:
                 campuses = [c[0] for c in Student._meta.get_field('campus').choices]
@@ -36,6 +40,7 @@ def student_login(request):
                 
             except Exception as e:
                 logger.error(f"Database error in student_login: {str(e)}")
+                logger.error(traceback.format_exc())
                 campuses = [c[0] for c in Student._meta.get_field('campus').choices]
                 return render(request, 'student_login.html', {
                     'campuses': campuses,
@@ -47,15 +52,23 @@ def student_login(request):
             request.session['balance'] = 0.0
             request.session['temp_total'] = 0.0
             request.session['temp_denominations'] = {"notes": {}, "coins": {}}
-
+            
+            logger.info(f"Session set - student_id: {student.id}, redirecting to dashboard")
             return redirect('student_dashboard')
 
         # GET request - show login form
-        campuses = [c[0] for c in Student._meta.get_field('campus').choices]
+        try:
+            campuses = [c[0] for c in Student._meta.get_field('campus').choices]
+        except Exception as e:
+            logger.warning(f"Could not get campus choices: {str(e)}")
+            campuses = ['Main Campus', 'Tech Campus', 'Business Campus']
+            
+        logger.info(f"Rendering login form with {len(campuses)} campuses")
         return render(request, 'student_login.html', {'campuses': campuses})
         
     except Exception as e:
         logger.error(f"Unexpected error in student_login: {str(e)}")
+        logger.error(traceback.format_exc())
         # Fallback campuses in case of error
         campuses = ['Main Campus', 'Tech Campus', 'Business Campus']
         return render(request, 'student_login.html', {
@@ -88,25 +101,34 @@ def calculate_denominations(amount):
 def student_dashboard(request):
     try:
         student_id = request.session.get('student_id')
+        logger.info(f"Student dashboard accessed - student_id: {student_id}")
+        
         if not student_id:
+            logger.warning("No student_id in session, redirecting to login")
             return redirect('student_login')
 
         student = get_object_or_404(Student, id=student_id)
         products = Product.objects.all()
         balance = Decimal(request.session.get('balance', 0.0))
+        
+        logger.info(f"Student: {student.name}, Balance: {balance}, Products: {products.count()}")
 
         selected_items = []
         total_cost = Decimal('0.00')
 
         if request.method == 'POST':
+            logger.info(f"POST request to dashboard - keys: {list(request.POST.keys())}")
+            
             # 🪙 Add money manually
             if 'add_money' in request.POST:
                 add_money = request.POST.get('add_money', '').strip()
+                logger.info(f"Adding money: {add_money}")
                 try:
                     add_money = Decimal(add_money)
                     if add_money <= 0:
                         raise ValueError("Amount must be positive.")
                 except (InvalidOperation, ValueError) as e:
+                    logger.warning(f"Invalid money amount: {add_money}")
                     return render(request, 'student_dashboard.html', {
                         'student': student,
                         'products': products,
@@ -115,6 +137,7 @@ def student_dashboard(request):
                     })
                 balance += add_money
                 request.session['balance'] = float(balance)
+                logger.info(f"New balance: {balance}")
                 return render(request, 'student_dashboard.html', {
                     'student': student,
                     'products': products,
@@ -126,6 +149,8 @@ def student_dashboard(request):
             elif 'preview_order' in request.POST:
                 selected_products = request.POST.getlist('product_id')
                 qtys = request.POST.getlist('qty')
+                logger.info(f"Preview order - Products: {selected_products}, Quantities: {qtys}")
+                
                 if not selected_products:
                     return render(request, 'student_dashboard.html', {
                         'student': student,
@@ -165,6 +190,7 @@ def student_dashboard(request):
             elif 'confirm_order' in request.POST:
                 selected_ids = request.POST.getlist('product_id')
                 qtys = request.POST.getlist('qty')
+                logger.info(f"Confirm order - Products: {selected_ids}, Quantities: {qtys}")
                 
                 # Validate that we have products selected
                 if not selected_ids:
@@ -276,6 +302,7 @@ def student_dashboard(request):
                     'date': timezone.localtime(timezone.now()).strftime("%Y-%m-%d %H:%M")
                 }
 
+                logger.info(f"Order completed - Total: {total_purchase}, Change: {change_amount}")
                 return redirect('receipt')
 
         return render(request, 'student_dashboard.html', {
@@ -286,6 +313,7 @@ def student_dashboard(request):
         
     except Exception as e:
         logger.error(f"Error in student_dashboard: {str(e)}")
+        logger.error(traceback.format_exc())
         return render(request, 'error.html', {
             'error_message': 'An error occurred. Please try logging in again.'
         })
@@ -295,6 +323,8 @@ def student_dashboard(request):
 def balance_page(request):
     try:
         student_id = request.session.get("student_id")
+        logger.info(f"Balance page accessed - student_id: {student_id}")
+        
         if not student_id:
             return redirect("student_login")
 
@@ -375,6 +405,7 @@ def balance_page(request):
         
     except Exception as e:
         logger.error(f"Error in balance_page: {str(e)}")
+        logger.error(traceback.format_exc())
         return redirect('student_login')
 
 
@@ -383,6 +414,7 @@ def receipt(request):
     try:
         receipt_data = request.session.get('receipt')
         if not receipt_data:
+            logger.warning("No receipt data in session")
             return redirect('student_dashboard')
 
         return render(request, 'receipt.html', {
@@ -396,4 +428,5 @@ def receipt(request):
         })
     except Exception as e:
         logger.error(f"Error in receipt: {str(e)}")
+        logger.error(traceback.format_exc())
         return redirect('student_dashboard')

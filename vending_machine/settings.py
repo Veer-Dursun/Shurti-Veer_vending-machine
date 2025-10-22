@@ -14,7 +14,8 @@ SECRET_KEY = os.environ.get(
     'SECRET_KEY',
     'django-insecure-^#b^4$v%r4vq0w$1ljvnhh6fo02kajzjr0-d#)!tx9h32&qlhn'
 )
-DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
+# FIX: Always set DEBUG=True for local development
+DEBUG = True  # Changed from environment variable
 
 ALLOWED_HOSTS = [
     '.onrender.com',  # Render subdomains
@@ -113,7 +114,8 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 
 # --- SECURITY (Production only) ---
-if not DEBUG:
+# FIX: Only enable HTTPS in production, not locally
+if os.environ.get('RENDER'):  # Only on Render
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
@@ -128,3 +130,5 @@ if not DEBUG:
 
 # --- DEFAULT PRIMARY KEY FIELD ---
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
