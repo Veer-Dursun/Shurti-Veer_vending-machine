@@ -1,15 +1,10 @@
 from django.db import models
 from django.utils import timezone
 
+# ------------------ Student ------------------
 class Student(models.Model):
     CAMPUS_CHOICES = [
-        ('Reduit', 'Reduit'),
         ('Ebene', 'Ebene'),
-        ('Rose Belle', 'Rose Belle'),
-        ('Montagne Blanche', 'Montagne Blanche'),
-        ('Pamplemousses', 'Pamplemousses'),
-        ('Baie Malgache', 'Baie Malgache'),
-        ('Mont Lubin', 'Mont Lubin'),
     ]
 
     name = models.CharField(max_length=100)
@@ -20,10 +15,11 @@ class Student(models.Model):
         return f"{self.name} - {self.campus}"
 
 
+# ------------------ Product ------------------
 class Product(models.Model):
     CATEGORY_CHOICES = [
         ('Cake', 'Cake'),
-        ('Soft Drink', 'Soft Drink')
+        ('Soft Drink', 'Soft Drink'),
     ]
 
     product_id = models.CharField(max_length=20, unique=True, blank=True, null=True)
@@ -37,8 +33,9 @@ class Product(models.Model):
         return f"{self.name} ({self.category})"
 
 
+# ------------------ Amount Inserted ------------------
 class AmountInserted(models.Model):
-    student = models.ForeignKey(Student, on_delete=models.CASCADE, default=1)
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
     date_time = models.DateTimeField(default=timezone.now)
     notes_200 = models.PositiveIntegerField(default=0)
     notes_100 = models.PositiveIntegerField(default=0)
@@ -49,7 +46,7 @@ class AmountInserted(models.Model):
     coins_5 = models.PositiveIntegerField(default=0)
     coins_1 = models.PositiveIntegerField(default=0)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    denominations = models.JSONField(default=dict, blank=True)  # store notes/coins breakdown
+    denominations = models.JSONField(default=dict, blank=True)
 
     def save(self, *args, **kwargs):
         self.total_amount = (
@@ -62,8 +59,9 @@ class AmountInserted(models.Model):
         return f"{self.student.name} - Rs {self.total_amount}"
 
 
+# ------------------ Change Return ------------------
 class ChangeReturn(models.Model):
-    student = models.ForeignKey(Student, on_delete=models.CASCADE, default=1)
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
     date_time = models.DateTimeField(default=timezone.now)
     notes_200 = models.PositiveIntegerField(default=0)
     notes_100 = models.PositiveIntegerField(default=0)
@@ -74,7 +72,7 @@ class ChangeReturn(models.Model):
     coins_5 = models.PositiveIntegerField(default=0)
     coins_1 = models.PositiveIntegerField(default=0)
     total_return = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    denominations = models.JSONField(default=dict, blank=True)  # store notes/coins breakdown
+    denominations = models.JSONField(default=dict, blank=True)
 
     def save(self, *args, **kwargs):
         self.total_return = (
@@ -87,8 +85,9 @@ class ChangeReturn(models.Model):
         return f"{self.student.name} - Rs {self.total_return}"
 
 
+# ------------------ Order ------------------
 class Order(models.Model):
-    student = models.ForeignKey(Student, on_delete=models.CASCADE, default=1)
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, blank=True, null=True)
     date_time = models.DateTimeField(default=timezone.now)
     balance = models.DecimalField(max_digits=10, decimal_places=2, default=0)

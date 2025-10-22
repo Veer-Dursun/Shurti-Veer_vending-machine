@@ -25,7 +25,7 @@ def student_login(request):
 
         # Save student info in session
         request.session['student_id'] = student.id
-        request.session['balance'] = 0.0
+        request.session['balance'] = float(student.amountinserted_set.aggregate(total=models.Sum('total_amount'))['total'] or 0)
         request.session['temp_total'] = 0.0
         request.session['temp_denominations'] = {"notes": {}, "coins": {}}
 
@@ -61,11 +61,8 @@ def student_dashboard(request):
     products = Product.objects.all()
     balance = Decimal(request.session.get('balance', 0.0))
 
-    selected_items = []
-    total_cost = Decimal('0.00')
-
     if request.method == 'POST':
-        # 🪙 Add money manually
+        # --- Add money manually ---
         if 'add_money' in request.POST:
             add_money = request.POST.get('add_money', '').strip()
             try:
@@ -88,7 +85,7 @@ def student_dashboard(request):
                 'success': f'Rs {add_money:.2f} added.'
             })
 
-        # 🧾 Preview Order
+        # --- Preview order ---
         elif 'preview_order' in request.POST:
             selected_products = request.POST.getlist('product_id')
             qtys = request.POST.getlist('qty')
@@ -99,18 +96,24 @@ def student_dashboard(request):
                     'balance': balance,
                     'error': 'Select at least one product.'
                 })
+            selected_items = []
+            total_cost = Decimal('0.00')
             for i, pid in enumerate(selected_products):
-                product = Product.objects.get(id=pid)
-                qty = int(qtys[i])
-                cost = Decimal(qty) * product.price
-                selected_items.append({
-                    'id': product.id,
-                    'name': product.name,
-                    'price': float(product.price),
-                    'qty': qty,
-                    'cost': float(cost)
-                })
-                total_cost += cost
+                try:
+                    product = Product.objects.get(id=pid)
+                    qty = int(qtys[i])
+                    cost = Decimal(qty) * product.price
+                    selected_items.append({
+                        'id': product.id,
+                        'name': product.name,
+                        'price': float(product.price),
+                        'qty': qty,
+                        'cost': float(cost)
+                    })
+                    total_cost += cost
+                except Product.DoesNotExist:
+                    continue
+
             if total_cost > balance:
                 return render(request, 'student_dashboard.html', {
                     'student': student,
@@ -127,91 +130,48 @@ def student_dashboard(request):
                 'preview': True
             })
 
-        # ✅ Confirm Order
+        # --- Confirm order ---
         elif 'confirm_order' in request.POST:
             selected_ids = request.POST.getlist('product_id')
             qtys = request.POST.getlist('qty')
-            
-            # Validate that we have products selected
             if not selected_ids:
-                return render(request, 'student_dashboard.html', {
-                    'student': student,
-                    'products': products,
-                    'balance': balance,
-                    'error': 'Please select at least one product.'
-                })
-            
-            # Ensure qtys list matches selected_ids length
-            if len(qtys) < len(selected_ids):
-                return render(request, 'student_dashboard.html', {
-                    'student': student,
-                    'products': products,
-                    'balance': balance,
-                    'error': 'Invalid order data. Please try again.'
-                })
-            
+                return redirect('student_dashboard')
+
             total_purchase = Decimal('0.00')
             ordered_items = []
 
-            # First, calculate total and validate stock
             for i, pid in enumerate(selected_ids):
-                product = Product.objects.get(id=pid)
-                qty = int(qtys[i]) if i < len(qtys) else 1
-                
-                if qty <= 0:
-                    continue
-                
-                if qty > product.qty:
-                    return render(request, 'student_dashboard.html', {
-                        'student': student,
-                        'products': products,
-                        'balance': balance,
-                        'error': f'Not enough stock for {product.name}.'
+                try:
+                    product = Product.objects.get(id=pid)
+                    qty = int(qtys[i]) if i < len(qtys) else 1
+                    if qty <= 0 or qty > product.qty:
+                        continue
+                    cost = Decimal(qty) * product.price
+                    total_purchase += cost
+                    product.qty -= qty
+                    product.save()
+                    ordered_items.append({
+                        'name': product.name,
+                        'qty': qty,
+                        'price': float(product.price),
+                        'cost': float(cost)
                     })
-                
-                cost = Decimal(qty) * product.price
-                total_purchase += cost
-            
-            # Calculate change
-            change_amount = balance - total_purchase
-            if change_amount < 0:
-                change_amount = Decimal('0.0')
-            
-            # Now create orders and update stock
-            for i, pid in enumerate(selected_ids):
-                product = Product.objects.get(id=pid)
-                qty = int(qtys[i]) if i < len(qtys) else 1
-                
-                if qty <= 0:
+                    # Create order entry
+                    Order.objects.create(
+                        student=student,
+                        product=product,
+                        balance=balance,
+                        total_purchase=cost,
+                        change_amount=0,
+                        amount_inserted=cost
+                    )
+                except Product.DoesNotExist:
                     continue
-                    
-                cost = Decimal(qty) * product.price
-
-                product.qty -= qty
-                product.save()
-
-                # Create order with individual product cost
-                order = Order.objects.create(
-                    student=student,
-                    product=product,
-                    balance=balance,
-                    total_purchase=cost,  # Individual product cost
-                    change_amount=Decimal('0.00'),  # No change per item
-                    amount_inserted=cost  # Amount for this specific product
-                )
-
-                ordered_items.append({
-                    'name': product.name,
-                    'qty': qty,
-                    'price': float(product.price),
-                    'cost': float(cost)
-                })
 
             change_amount = balance - total_purchase
             if change_amount < 0:
                 change_amount = Decimal('0.0')
 
-            # Save change return - FIXED BUG
             change_denoms = calculate_denominations(change_amount)
             ChangeReturn.objects.create(
                 student=student,
@@ -226,7 +186,7 @@ def student_dashboard(request):
                 denominations=change_denoms
             )
 
-            # Save receipt info in session
+            # Save receipt info
             inserted_money = balance
             balance -= total_purchase
             if balance < 0:
@@ -251,25 +211,20 @@ def student_dashboard(request):
     })
 
 
-# -------- Balance Page (Denominations) --------
+# -------- Balance Page --------
 def balance_page(request):
     student_id = request.session.get("student_id")
     if not student_id:
         return redirect("student_login")
 
     student = get_object_or_404(Student, id=student_id)
-    request.session.setdefault("balance", 0.0)
-    request.session.setdefault("temp_total", 0.0)
-    request.session.setdefault("temp_denominations", {"notes": {}, "coins": {}})
+    balance = Decimal(request.session.get("balance", 0.0))
+    temp_total = Decimal(request.session.get("temp_total", 0.0))
+    temp_denominations = request.session.get("temp_denominations", {"notes": {}, "coins": {}})
 
-    balance = Decimal(request.session["balance"])
-    temp_total = Decimal(request.session["temp_total"])
-    temp_denominations = request.session["temp_denominations"]
-
-    success = None
-    error = None
     notes = ["200", "100", "50", "25"]
     coins = ["20", "10", "5", "1"]
+    success, error = None, None
 
     if request.method == "POST":
         try:
@@ -277,20 +232,15 @@ def balance_page(request):
                 value = request.POST["add_note"]
                 temp_total += Decimal(value)
                 temp_denominations["notes"][value] = temp_denominations["notes"].get(value, 0) + 1
-
             elif "add_coin" in request.POST:
                 value = request.POST["add_coin"]
                 temp_total += Decimal(value)
                 temp_denominations["coins"][value] = temp_denominations["coins"].get(value, 0) + 1
-
             elif "confirm_balance" in request.POST:
                 if temp_total <= 0:
-                    raise ValueError("Please insert some notes or coins first.")
-
+                    raise ValueError("Insert some notes or coins first.")
                 balance += temp_total
                 request.session["balance"] = float(balance)
-
-                # Save denominations in AmountInserted - FIXED BUG
                 AmountInserted.objects.create(
                     student=student,
                     notes_200=temp_denominations["notes"].get("200", 0),
@@ -303,22 +253,15 @@ def balance_page(request):
                     coins_1=temp_denominations["coins"].get("1", 0),
                     denominations=temp_denominations
                 )
-
-                # Reset temp
                 temp_total = Decimal(0)
                 temp_denominations = {"notes": {}, "coins": {}}
                 request.session["temp_total"] = 0.0
                 request.session["temp_denominations"] = temp_denominations
-
                 success = f"Rs {balance:.2f} successfully added!"
-
             request.session["temp_total"] = float(temp_total)
             request.session["temp_denominations"] = temp_denominations
-
-        except ValueError as ve:
-            error = str(ve)
-        except Exception:
-            error = "An error occurred. Please try again."
+        except Exception as e:
+            error = str(e)
 
     return render(request, "balance.html", {
         "student": student,
