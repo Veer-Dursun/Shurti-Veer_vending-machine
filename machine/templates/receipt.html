@@ -1,0 +1,140 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Receipt</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f4f8;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Top Bar */
+        .top-bar {
+            background-color: #1e3a8a;
+            color: white;
+            padding: 12px 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center; /* centers the title */
+            position: relative; /* for Home button positioning */
+        }
+
+        .top-bar a {
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+            background-color: #2563eb;
+            padding: 6px 14px;
+            border-radius: 8px;
+            transition: 0.3s;
+            position: absolute; /* keeps Home button top-left */
+            left: 25px;
+        }
+
+        .top-bar a:hover { background-color: #60a5fa; }
+
+        .top-bar .title {
+            margin: 0;
+            text-align: center;
+            flex: 1;
+        }
+
+        /* Container */
+        .container {
+            max-width: 700px;
+            margin: 30px auto;
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        h2, h3 { margin-top: 0; }
+
+        .receipt-info p {
+            margin: 5px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: center;
+        }
+
+        th { background-color: #f3f4f6; }
+
+        .totals {
+            margin-top: 15px;
+            text-align: right;
+        }
+
+        .totals p {
+            margin: 5px 0;
+            font-weight: bold;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 25px;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <a href="{% url 'home' %}">🏠 Home</a>
+        <h2 class="title">Receipt</h2>
+    </div>
+
+    <div class="container">
+        <div class="receipt-info">
+            <p><b>Student:</b> {{ student_name }}</p>
+            <p><b>Campus:</b> {{ campus }}</p>
+            <p><b>Date:</b> {{ date }}</p>
+        </div>
+
+        <table>
+            <tr>
+                <th>Product</th>
+                <th>Qty</th>
+                <th>Price</th>
+                <th>Subtotal</th>
+            </tr>
+            {% for item in ordered_items %}
+            <tr>
+                <td>{{ item.name }}</td>
+                <td>{{ item.qty }}</td>
+                <td>Rs {{ item.price }}</td>
+                <td>Rs {{ item.cost }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+
+        <div class="totals">
+         <p>Amount Inserted: Rs {{ inserted_money }}</p>
+         <p>Total Purchase: Rs {{ total_purchase }}</p>
+         <p>Change Returned: Rs {{ change }}</p> <!-- Display change -->
+        </div>
+
+
+        <div class="footer">
+            Thank you for your purchase!
+        </div>
+    </div>
+
+</body>
+</html>

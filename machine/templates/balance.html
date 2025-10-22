@@ -1,0 +1,218 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Add Balance</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(to bottom right, #eef2f3, #dfe9f3);
+            min-height: 100vh;
+        }
+
+        .top-bar {
+            background-color: #1e3a8a;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 25px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .top-bar a {
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+            background-color: #2563eb;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: 0.3s;
+        }
+
+        .top-bar a:hover { background-color: #60a5fa; }
+
+        .container {
+            max-width: 700px;
+            margin: 50px auto;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            padding: 30px;
+        }
+
+        .balance-display {
+            background-color: #f0f9ff;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .balance-display h2 {
+            margin: 0 0 10px;
+            color: #1e3a8a;
+        }
+
+        .amount-display {
+            background-color: #dbeafe;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .amount-display h3 {
+            margin: 0;
+            color: #1e40af;
+            font-size: 24px;
+        }
+
+        .section-title {
+            text-align: center;
+            margin: 20px 0 15px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #374151;
+        }
+
+        .buttons-container {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .money-btn {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s;
+            min-width: 100px;
+        }
+
+        .money-btn:hover { 
+            background-color: #1e40af;
+            transform: translateY(-2px);
+        }
+
+        .money-btn:active {
+            transform: translateY(0);
+        }
+
+        .confirm-btn {
+            width: 100%;
+            background-color: #22c55e;
+            color: white;
+            border: none;
+            padding: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-top: 20px;
+        }
+
+        .confirm-btn:hover { background-color: #16a34a; }
+
+        .confirm-btn:disabled {
+            background-color: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .message {
+            text-align: center;
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 6px;
+        }
+
+        .success { 
+            background-color: #d1fae5;
+            color: #065f46;
+            font-weight: bold;
+        }
+        
+        .error { 
+            background-color: #fee2e2;
+            color: #991b1b;
+            font-weight: bold;
+        }
+
+        .divider {
+            height: 1px;
+            background-color: #e5e7eb;
+            margin: 25px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <a href="{% url 'student_dashboard' %}">← Back to Dashboard</a>
+        <h2>{{ student.name }} Balance</h2>
+        <div style="width: 180px;"></div>
+    </div>
+
+    <div class="container">
+        <div class="balance-display">
+            <h2>Current Balance</h2>
+            <h1 style="margin: 0; color: #22c55e; font-size: 36px;">Rs {{ balance }}</h1>
+        </div>
+
+        <div class="amount-display">
+            <p style="margin: 0 0 5px; color: #6b7280;">Amount to Add</p>
+            <h3>Rs {{ temp_total }}</h3>
+        </div>
+
+        <form method="POST">
+            {% csrf_token %}
+            
+            <div class="section-title">Select Notes</div>
+            <div class="buttons-container">
+                <button type="submit" name="add_note" value="200" class="money-btn">Rs 200</button>
+                <button type="submit" name="add_note" value="100" class="money-btn">Rs 100</button>
+                <button type="submit" name="add_note" value="50" class="money-btn">Rs 50</button>
+                <button type="submit" name="add_note" value="25" class="money-btn">Rs 25</button>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="section-title">Select Coins</div>
+            <div class="buttons-container">
+                <button type="submit" name="add_coin" value="20" class="money-btn">Rs 20</button>
+                <button type="submit" name="add_coin" value="10" class="money-btn">Rs 10</button>
+                <button type="submit" name="add_coin" value="5" class="money-btn">Rs 5</button>
+                <button type="submit" name="add_coin" value="1" class="money-btn">Rs 1</button>
+            </div>
+
+            <button type="submit" name="confirm_balance" class="confirm-btn" {% if temp_total == 0 %}disabled{% endif %}>
+                ✓ Add to Balance
+            </button>
+        </form>
+
+        {% if success %}
+            <div class="message success">✓ {{ success }}</div>
+        {% elif error %}
+            <div class="message error">✗ {{ error }}</div>
+        {% endif %}
+    </div>
+
+    {% if success %}
+    <script>
+        // Redirect to dashboard after 1.5 seconds on success
+        setTimeout(function() {
+            window.location.href = "{% url 'student_dashboard' %}";
+        }, 1500);
+    </script>
+    {% endif %}
+</body>
+</html>

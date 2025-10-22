@@ -1,0 +1,49 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Vending Machine Portal</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: url("{% static 'images/Background.jpg' %}") no-repeat center center fixed;
+            background-size: cover;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            color: white; /* Optional: improves contrast */
+            text-shadow: 1px 1px 2px black; /* Optional for readability */
+        }
+        h1 {
+            font-size: 2em;
+            margin-bottom: 40px;
+        }
+        .buttons {
+            display: flex;
+            gap: 20px;
+        }
+        a {
+            text-decoration: none;
+            background-color: rgba(59, 130, 246, 0.85);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            transition: 0.3s;
+        }
+        a:hover {
+            background-color: rgba(37, 99, 235, 0.9);
+        }
+    </style>
+</head>
+<body>
+    <h1>Welcome to the Vending Machine</h1>
+    <div class="buttons">
+        <a href="/admin/">Admin</a>
+        <a href="{% url 'student_login' %}">Student</a>
+    </div>
+</body>
+</html>

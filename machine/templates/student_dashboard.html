@@ -1,0 +1,259 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Student Dashboard</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(to bottom right, #eef2f3, #dfe9f3);
+            min-height: 100vh;
+        }
+
+        .top-bar {
+            background-color: #1e3a8a;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 25px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .top-bar a {
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+            background-color: #2563eb;
+            padding: 6px 14px;
+            border-radius: 8px;
+            transition: 0.3s;
+        }
+
+        .top-bar a:hover { background-color: #60a5fa; }
+
+        .balance-section {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .balance-section button, .balance-section a {
+            background-color: #22c55e;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            text-decoration: none;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .balance-section button:hover, .balance-section a:hover { background-color: #16a34a; }
+
+        .container { display: flex; margin: 30px; gap: 30px; }
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 20px;
+            flex: 2;
+        }
+
+        .card {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+            text-align: center;
+            transition: 0.3s;
+        }
+
+        .card:hover { transform: translateY(-4px); }
+
+        .card img {
+            width: 100%;
+            height: 180px;
+            object-fit: contain;
+            border-radius: 10px;
+            background-color: #f9fafb;
+        }
+
+        .card h4 { margin: 10px 0 5px; }
+
+        .sidebar {
+            background-color: #f8fafc;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            width: 300px;
+            flex-shrink: 0;
+        }
+
+        .sidebar h3 { text-align: center; margin-bottom: 15px; }
+
+        .order-summary { margin-bottom: 15px; max-height: 300px; overflow-y: auto; }
+
+        .order-summary p { margin: 4px 0; }
+
+        .buy-btn {
+            width: 100%;
+            background-color: #22c55e;
+            color: white;
+            border: none;
+            padding: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-top: 10px;
+        }
+
+        .buy-btn:hover { background-color: #16a34a; }
+        
+        .buy-btn:disabled {
+            background-color: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .message { text-align: center; margin-top: 15px; }
+
+        .success { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <a href="{% url 'home' %}">🏠 Home</a>
+        <h2>Welcome, {{ student.name }}</h2>
+        <div class="balance-section">
+            <span><b>Balance:</b> Rs {{ balance|default:"0.00" }}</span>
+            <a href="{% url 'balance_page' %}">Bills & Coins</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <form method="POST" id="orderForm" class="product-grid">
+            {% csrf_token %}
+            {% for product in products %}
+            <div class="card">
+                {% if product.image %}
+                    <img src="{{ product.image.url }}" alt="{{ product.name }}">
+                {% else %}
+                    <img src="{% static 'images/no_image.png' %}" alt="No Image">
+                {% endif %}
+                <h4>{{ product.name }}</h4>
+                <p>Category: {{ product.category }}</p>
+                <p>Price: Rs <span class="price">{{ product.price }}</span></p>
+                <p>Qty Left: {{ product.qty }}</p>
+                <div>
+                    <input type="checkbox" class="product-check" value="{{ product.id }}" data-name="{{ product.name }}" data-price="{{ product.price }}" data-index="{{ forloop.counter0 }}">
+                    <input type="number" class="qty-input" value="1" min="1" style="width:60px;" data-index="{{ forloop.counter0 }}">
+                </div>
+            </div>
+            {% endfor %}
+
+            <input type="hidden" name="confirm_order" value="1">
+        </form>
+
+        <div class="sidebar">
+            <h3>Order Summary</h3>
+            <div class="order-summary" id="orderSummary">
+                <p>No items selected.</p>
+            </div>
+            <p><b>Total: Rs <span id="totalPrice">0.00</span></b></p>
+
+            <button type="button" class="buy-btn" id="buyBtn" disabled>🛒 Buy Now</button>
+
+            <div class="message">
+                {% if success %}
+                    <p class="success">✓ {{ success }}</p>
+                {% elif error %}
+                    <p class="error">✗ {{ error }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const checkboxes = document.querySelectorAll('.product-check');
+        const quantities = document.querySelectorAll('.qty-input');
+        const summaryDiv = document.getElementById('orderSummary');
+        const totalDisplay = document.getElementById('totalPrice');
+        const buyBtn = document.getElementById('buyBtn');
+        const balance = parseFloat("{{ balance|default:'0.00' }}");
+
+        function updateSummary() {
+            let total = 0;
+            let summary = '';
+            let itemCount = 0;
+
+            checkboxes.forEach((cb, index) => {
+                if (cb.checked) {
+                    itemCount++;
+                    const qty = parseInt(quantities[index].value) || 1;
+                    const price = parseFloat(cb.dataset.price);
+                    const name = cb.dataset.name;
+                    const subtotal = qty * price;
+                    total += subtotal;
+                    summary += `<p><strong>${name}</strong> x${qty} — Rs ${subtotal.toFixed(2)}</p>`;
+                }
+            });
+
+            summaryDiv.innerHTML = summary || '<p>No items selected.</p>';
+            totalDisplay.textContent = total.toFixed(2);
+
+            // Enable/disable button based on selection and balance
+            if (itemCount === 0) {
+                buyBtn.disabled = true;
+                buyBtn.textContent = '🛒 Buy Now';
+                buyBtn.style.backgroundColor = '#9ca3af';
+            } else if (total > balance) {
+                buyBtn.disabled = true;
+                buyBtn.textContent = `⚠️ Insufficient Balance (Need Rs ${(total - balance).toFixed(2)} more)`;
+                buyBtn.style.backgroundColor = '#9ca3af';
+            } else {
+                buyBtn.disabled = false;
+                buyBtn.textContent = '🛒 Buy Now';
+                buyBtn.style.backgroundColor = '#22c55e';
+            }
+        }
+
+        checkboxes.forEach((cb, i) => {
+            cb.addEventListener('change', updateSummary);
+            quantities[i].addEventListener('input', updateSummary);
+        });
+
+        buyBtn.addEventListener('click', () => {
+            // Check if any items selected
+            let hasSelected = false;
+            checkboxes.forEach(cb => {
+                if (cb.checked) hasSelected = true;
+            });
+
+            if (!hasSelected) {
+                alert('Please select at least one product!');
+                return;
+            }
+
+            // Only add name attributes to checked items before submitting
+            checkboxes.forEach((cb, index) => {
+                if (cb.checked) {
+                    cb.setAttribute('name', 'product_id');
+                    quantities[index].setAttribute('name', 'qty');
+                } else {
+                    cb.removeAttribute('name');
+                    quantities[index].removeAttribute('name');
+                }
+            });
+            document.getElementById('orderForm').submit();
+        });
+
+        // Initial check
+        updateSummary();
+    </script>
+</body>
+</html>
