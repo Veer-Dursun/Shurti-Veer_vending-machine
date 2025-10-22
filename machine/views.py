@@ -15,12 +15,9 @@ def home(request):
 # -------- Student Login --------
 def student_login(request):
     try:
-        logger.info(f"Student login view called - Method: {request.method}")
-        
         if request.method == 'POST':
             name = request.POST.get('name', '').strip()
             campus = request.POST.get('campus', '').strip()
-            logger.info(f"POST data - Name: '{name}', Campus: '{campus}'")
 
             if not name or not campus:
                 campuses = [c[0] for c in Student._meta.get_field('campus').choices]
@@ -29,18 +26,17 @@ def student_login(request):
                     'error': 'Please enter name and select campus.'
                 })
 
-            # FIXED: Added proper error handling for database operations
+            # FIXED: Remove the 'balance' from defaults
             try:
                 student, created = Student.objects.get_or_create(
                     name=name, 
-                    campus=campus,
-                    defaults={'balance': Decimal('0.00')}
+                    campus=campus
+                    # No defaults parameter since Student model has no balance field
                 )
                 logger.info(f"Student {'created' if created else 'found'}: {name} from {campus}")
                 
             except Exception as e:
                 logger.error(f"Database error in student_login: {str(e)}")
-                logger.error(traceback.format_exc())
                 campuses = [c[0] for c in Student._meta.get_field('campus').choices]
                 return render(request, 'student_login.html', {
                     'campuses': campuses,
@@ -49,12 +45,32 @@ def student_login(request):
 
             # Save student info in session
             request.session['student_id'] = student.id
-            request.session['balance'] = 0.0
+            request.session['balance'] = 0.0  # This is session balance, not model field
             request.session['temp_total'] = 0.0
             request.session['temp_denominations'] = {"notes": {}, "coins": {}}
-            
-            logger.info(f"Session set - student_id: {student.id}, redirecting to dashboard")
+
             return redirect('student_dashboard')
+
+        # GET request - show login form
+        campuses = [c[0] for c in Student._meta.get_field('campus').choices]
+        return render(request, 'student_login.html', {'campuses': campuses})
+        
+    except Exception as e:
+        logger.error(f"Unexpected error in student_login: {str(e)}")
+        campuses = ['Ebene']  # Your only campus choice
+        return render(request, 'student_login.html', {
+            'campuses': campuses,
+            'error': 'System error. Please try again.'
+        })
+
+            # Save student info in session
+        request.session['student_id'] = student.id
+        request.session['balance'] = 0.0
+        request.session['temp_total'] = 0.0
+        request.session['temp_denominations'] = {"notes": {}, "coins": {}}
+            
+        logger.info(f"Session set - student_id: {student.id}, redirecting to dashboard")
+        return redirect('student_dashboard')
 
         # GET request - show login form
         try:
