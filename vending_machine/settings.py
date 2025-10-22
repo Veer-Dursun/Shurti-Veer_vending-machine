@@ -1,7 +1,7 @@
 """
 Django settings for vending_machine project.
 """
-
+import dj_database_url
 from decouple import config
 from pathlib import Path
 import os
@@ -21,12 +21,11 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-^#b^4$v%r4vq0w$1ljvnh
 DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
 ALLOWED_HOSTS = [
-    'vending-machine.onrender.com',
+    '.onrender.com',  # Allows all Render subdomains
     'localhost',
     '127.0.0.1',
 ]
 
-# Add your actual Render domain after deployment
 RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 if RENDER_EXTERNAL_HOSTNAME:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
