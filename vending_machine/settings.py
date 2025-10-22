@@ -4,8 +4,6 @@ Django settings for vending_machine project.
 
 import os
 from pathlib import Path
-import dj_database_url
-from decouple import config
 
 # --- BASE DIR ---
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -77,23 +75,13 @@ WSGI_APPLICATION = 'vending_machine.wsgi.application'
 
 
 # --- DATABASES ---
-if os.environ.get('DATABASE_URL'):
-    # Use PostgreSQL on Render
-    DATABASES = {
-        'default': dj_database_url.config(
-            default=os.environ.get('DATABASE_URL'),
-            conn_max_age=600,
-            ssl_require=True
-        )
+# Using SQLite only (WARNING: Data will be lost on Render redeploys!)
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
-else:
-    # Use SQLite locally
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+}
 
 
 # --- PASSWORD VALIDATION ---

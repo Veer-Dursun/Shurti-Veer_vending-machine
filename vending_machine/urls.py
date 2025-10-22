@@ -16,13 +16,8 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from django.http import HttpResponse
-
-def home_view(request):
-    return HttpResponse("Vending Machine App is running!")
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', home_view, name='home'),  # Root URL
-    path('machine/', include('machine.urls')),  # Include your app URLs
+    path('', include('machine.urls')),
 ]
