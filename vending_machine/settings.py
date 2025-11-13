@@ -14,16 +14,16 @@ SECRET_KEY = os.environ.get(
     'SECRET_KEY',
     'django-insecure-^#b^4$v%r4vq0w$1ljvnhh6fo02kajzjr0-d#)!tx9h32&qlhn'
 )
-# FIX: Always set DEBUG=True for local development
+
 DEBUG = True  # Changed from environment variable
 
 ALLOWED_HOSTS = [
-    '.onrender.com',  # Render subdomains
+    '.onrender.com',  
     'localhost',
     '127.0.0.1',
 ]
 
-# Allow Render external hostname if available
+
 RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 if RENDER_EXTERNAL_HOSTNAME:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
@@ -38,12 +38,15 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'machine',
+    'rest_framework',
+    'corsheaders',
 ]
+
 
 # --- MIDDLEWARE ---
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # Serve static files on Render
+    'whitenoise.middleware.WhiteNoiseMiddleware',  
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -55,7 +58,6 @@ MIDDLEWARE = [
 ROOT_URLCONF = 'vending_machine.urls'
 
 
-# --- TEMPLATES ---
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -114,7 +116,7 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 
 # --- SECURITY (Production only) ---
-# FIX: Only enable HTTPS in production, not locally
+
 if os.environ.get('RENDER'):  # Only on Render
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
@@ -130,5 +132,3 @@ if os.environ.get('RENDER'):  # Only on Render
 
 # --- DEFAULT PRIMARY KEY FIELD ---
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-

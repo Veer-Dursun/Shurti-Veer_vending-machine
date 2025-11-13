@@ -7,12 +7,12 @@ import traceback
 
 logger = logging.getLogger(__name__)
 
-# -------- Home --------
+# Home 
 def home(request):
     return render(request, 'home.html')
 
 
-# -------- Student Login --------
+#  Student Login 
 def student_login(request):
     try:
         if request.method == 'POST':
@@ -26,12 +26,12 @@ def student_login(request):
                     'error': 'Please enter name and select campus.'
                 })
 
-            # FIXED: Remove the 'balance' from defaults
+            
             try:
                 student, created = Student.objects.get_or_create(
                     name=name, 
                     campus=campus
-                    # No defaults parameter since Student model has no balance field
+                   
                 )
                 logger.info(f"Student {'created' if created else 'found'}: {name} from {campus}")
                 
@@ -43,21 +43,20 @@ def student_login(request):
                     'error': 'Database error. Please try again.'
                 })
 
-            # Save student info in session
+            # Save student info 
             request.session['student_id'] = student.id
-            request.session['balance'] = 0.0  # This is session balance, not model field
+            request.session['balance'] = 0.0  
             request.session['temp_total'] = 0.0
             request.session['temp_denominations'] = {"notes": {}, "coins": {}}
 
             return redirect('student_dashboard')
 
-        # GET request - show login form
         campuses = [c[0] for c in Student._meta.get_field('campus').choices]
         return render(request, 'student_login.html', {'campuses': campuses})
         
     except Exception as e:
         logger.error(f"Unexpected error in student_login: {str(e)}")
-        campuses = ['Ebene']  # Your only campus choice
+        campuses = ['Ebene']  #  only campus choice
         return render(request, 'student_login.html', {
             'campuses': campuses,
             'error': 'System error. Please try again.'
@@ -85,7 +84,7 @@ def student_login(request):
     except Exception as e:
         logger.error(f"Unexpected error in student_login: {str(e)}")
         logger.error(traceback.format_exc())
-        # Fallback campuses in case of error
+        
         campuses = ['Main Campus', 'Tech Campus', 'Business Campus']
         return render(request, 'student_login.html', {
             'campuses': campuses,
@@ -93,7 +92,7 @@ def student_login(request):
         })
 
 
-# -------- Helper: Calculate Change Denominations --------
+# -------- Calculate Change Denominations --------
 def calculate_denominations(amount):
     try:
         amount = int(amount)
@@ -135,7 +134,7 @@ def student_dashboard(request):
         if request.method == 'POST':
             logger.info(f"POST request to dashboard - keys: {list(request.POST.keys())}")
             
-            # 🪙 Add money manually
+            
             if 'add_money' in request.POST:
                 add_money = request.POST.get('add_money', '').strip()
                 logger.info(f"Adding money: {add_money}")
@@ -161,7 +160,6 @@ def student_dashboard(request):
                     'success': f'Rs {add_money:.2f} added.'
                 })
 
-            # 🧾 Preview Order
             elif 'preview_order' in request.POST:
                 selected_products = request.POST.getlist('product_id')
                 qtys = request.POST.getlist('qty')
@@ -202,7 +200,7 @@ def student_dashboard(request):
                     'preview': True
                 })
 
-            # ✅ Confirm Order
+           
             elif 'confirm_order' in request.POST:
                 selected_ids = request.POST.getlist('product_id')
                 qtys = request.POST.getlist('qty')
@@ -217,7 +215,7 @@ def student_dashboard(request):
                         'error': 'Please select at least one product.'
                     })
                 
-                # Ensure qtys list matches selected_ids length
+                
                 if len(qtys) < len(selected_ids):
                     return render(request, 'student_dashboard.html', {
                         'student': student,
@@ -229,7 +227,7 @@ def student_dashboard(request):
                 total_purchase = Decimal('0.00')
                 ordered_items = []
 
-                # First, calculate total and validate stock
+                
                 for i, pid in enumerate(selected_ids):
                     product = Product.objects.get(id=pid)
                     qty = int(qtys[i]) if i < len(qtys) else 1
@@ -271,9 +269,9 @@ def student_dashboard(request):
                         student=student,
                         product=product,
                         balance=balance,
-                        total_purchase=cost,  # Individual product cost
-                        change_amount=Decimal('0.00'),  # No change per item
-                        amount_inserted=cost  # Amount for this specific product
+                        total_purchase=cost,  
+                        change_amount=Decimal('0.00'),  
+                        amount_inserted=cost  
                     )
 
                     ordered_items.append({
@@ -377,7 +375,7 @@ def balance_page(request):
                     balance += temp_total
                     request.session["balance"] = float(balance)
 
-                    # Save denominations in AmountInserted - FIXED BUG
+                    # Save denominations in AmountInserted 
                     AmountInserted.objects.create(
                         student=student,
                         notes_200=temp_denominations["notes"].get("200", 0),
@@ -446,3 +444,4 @@ def receipt(request):
         logger.error(f"Error in receipt: {str(e)}")
         logger.error(traceback.format_exc())
         return redirect('student_dashboard')
+    

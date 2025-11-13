@@ -1,7 +1,7 @@
 from django.db import models
 from django.utils import timezone
 
-# ------------------ Student ------------------
+#  Student 
 class Student(models.Model):
     CAMPUS_CHOICES = [
         ('Ebene', 'Ebene'),
@@ -15,7 +15,7 @@ class Student(models.Model):
         return f"{self.name} - {self.campus}"
 
 
-# ------------------ Product ------------------
+#  Product 
 class Product(models.Model):
     CATEGORY_CHOICES = [
         ('Cake', 'Cake'),
@@ -33,7 +33,7 @@ class Product(models.Model):
         return f"{self.name} ({self.category})"
 
 
-# ------------------ Amount Inserted ------------------
+# Amount Inserted 
 class AmountInserted(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     date_time = models.DateTimeField(default=timezone.now)
@@ -59,7 +59,7 @@ class AmountInserted(models.Model):
         return f"{self.student.name} - Rs {self.total_amount}"
 
 
-# ------------------ Change Return ------------------
+#Change Return 
 class ChangeReturn(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     date_time = models.DateTimeField(default=timezone.now)
@@ -85,7 +85,7 @@ class ChangeReturn(models.Model):
         return f"{self.student.name} - Rs {self.total_return}"
 
 
-# ------------------ Order ------------------
+#  Order 
 class Order(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, blank=True, null=True)
