@@ -1,1 +1,1 @@
-web: gunicorn my_django_project.wsgi
+web: gunicorn vending_machine.wsgi
