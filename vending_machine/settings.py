@@ -81,10 +81,15 @@ WSGI_APPLICATION = 'vending_machine.wsgi.application'
 # Using SQLite only (WARNING: Data will be lost on Render redeploys!)
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'vending_db_rp0h',
+        'USER': 'vending_db_rp0h_user',
+        'PASSWORD': 'qvDnsSmyRnzdUb7xE7vEYKtuEdaUjwEA',
+        'HOST': 'dpg-d4aeif8gjchc73flfgqg-a.singapore-postgres.render.com',
+        'PORT': '5432',
     }
 }
+
 
 
 # --- PASSWORD VALIDATION ---
